@@ -1,3 +1,8 @@
+const dotenv = require('dotenv');
+const path = require('path');
+// Load environment variables early
+dotenv.config({ path: path.join(__dirname, '.env') });
+
 const helmet = require('helmet');
 const express = require('express');
 const asyncErrors = require('express-async-errors'); // must be required before routes
@@ -7,16 +12,12 @@ const swaggerUi = require('swagger-ui-express');
 const yaml = require('yamljs');
 const logger = require('./utils/logger');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
 
 const { initializeDB } = require('./database');
 const { ensureAdminExists, ensureSuperAdminExists } = require('./utils/helpers');
 
-// Load environment variables robustly
-dotenv.config({ path: path.join(__dirname, '.env') });
-
 const app = express();
+app.set('trust proxy', 1);
 const corsOptions = {
   origin: ['https://shop-frontend-dun.vercel.app'],
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
@@ -30,9 +31,12 @@ app.use(
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "https://www.gstatic.com"],
         scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "blob:"]
+        imgSrc: ["'self'", "data:", "blob:"],
+        // Allow frontend and tunnel URLs to make fetch/XHR requests
+        connectSrc: ["'self'", "https://olive-flies-cover.loca.lt", "https://vivid-fox-nap.loca.lt", "https://shop-frontend-dun.vercel.app"]
       }
     }
+
   })
 );
 app.use(rateLimiter);
@@ -62,7 +66,9 @@ app.use(blogsRouter);
 app.use(notificationsRouter);
 app.use(statsRouter);
 app.use(wishlistRouter);
-app.use(demoRouter);
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 const PORT = process.env.PORT || 5001;
 

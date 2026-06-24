@@ -7,11 +7,11 @@ const poolConfig = {
   port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : 5432,
   database: process.env.PGDATABASE || 'shop',
   user: process.env.PGUSER || 'postgres',
+  // Include password only if defined to avoid empty string causing SASL errors
+  ...(process.env.PGPASSWORD ? { password: process.env.PGPASSWORD } : {})
 };
-// If a password is provided, add it; otherwise omit to let pg use trust/auth defaults
-if (process.env.PGPASSWORD) {
-  poolConfig.password = process.env.PGPASSWORD;
-}
+
+
 
 
 
