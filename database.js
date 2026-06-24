@@ -16,7 +16,9 @@ const poolConfig = {
 
 
 const pool = new Pool(
-  process.env.DATABASE_URL ? { connectionString: process.env.DATABASE_URL } : poolConfig
+  process.env.DATABASE_URL
+    ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+    : poolConfig
 );
 
 const initializeDB = async () => {
