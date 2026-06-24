@@ -17,7 +17,12 @@ const { ensureAdminExists, ensureSuperAdminExists } = require('./utils/helpers')
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-app.use(cors());
+const corsOptions = {
+  origin: ['https://shop-frontend-dun.vercel.app'],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.use(helmet());
 app.use(rateLimiter);
 app.use((req, res, next) => { logger.info(`${req.method} ${req.originalUrl}`); next(); });
