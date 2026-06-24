@@ -1,4 +1,11 @@
+const helmet = require('helmet');
 const express = require('express');
+const asyncErrors = require('express-async-errors'); // must be required before routes
+const rateLimiter = require('./middleware/rateLimiter');
+const errorHandler = require('./middleware/errorHandler');
+const swaggerUi = require('swagger-ui-express');
+const yaml = require('yamljs');
+const logger = require('./utils/logger');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -11,6 +18,9 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 app.use(cors());
+app.use(helmet());
+app.use(rateLimiter);
+app.use((req, res, next) => { logger.info(`${req.method} ${req.originalUrl}`); next(); });
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

@@ -2,9 +2,17 @@ const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/shop',
-});
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? { connectionString: process.env.DATABASE_URL }
+    : {
+        host: process.env.PGHOST || '127.0.0.1',
+        port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : 5432,
+        database: process.env.PGDATABASE || 'shop',
+        user: process.env.PGUSER || 'postgres',
+password: process.env.PGPASSWORD || 'postgres',
+      }
+);
 
 const initializeDB = async () => {
   try {
