@@ -23,7 +23,18 @@ const corsOptions = {
   credentials: true,
 };
 app.use(cors(corsOptions));
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "https://www.gstatic.com"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "blob:"]
+      }
+    }
+  })
+);
 app.use(rateLimiter);
 app.use((req, res, next) => { logger.info(`${req.method} ${req.originalUrl}`); next(); });
 app.use(express.json({ limit: '50mb' }));
