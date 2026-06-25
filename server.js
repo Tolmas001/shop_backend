@@ -18,25 +18,42 @@ const { ensureAdminExists, ensureSuperAdminExists } = require('./utils/helpers')
 
 const app = express();
 app.set('trust proxy', 1);
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://shop-frontend-dun.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
-  origin: ['https://shop-frontend-dun.vercel.app'],
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  origin: function (origin, callback) {
+    // Mobil ilovalar, postman yoki origin yo'q so'rovlarga ruxsat berish
+    if (!origin) return callback(null, true);
+    
+    // Agar origin ruxsat etilganlar ro'yxatida bo'lsa yoki .vercel.app bo'lsa ruxsat berish
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS xatoligi: Bu domen ruxsat etilmagan!'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
 };
 app.use(cors(corsOptions));
+
 app.use(
   helmet({
+    crossOriginResourcePolicy: false, // Rasmlar cross-origin orqali o'qilishiga ruxsat berish
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "https://www.gstatic.com"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "blob:"],
-        // Allow frontend and tunnel URLs to make fetch/XHR requests
-        connectSrc: ["'self'", "https://olive-flies-cover.loca.lt", "https://vivid-fox-nap.loca.lt", "https://shop-frontend-dun.vercel.app"]
+        styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "http:", "https:"],
+        connectSrc: ["'self'", "*"]
       }
     }
-
   })
 );
 app.use(rateLimiter);
