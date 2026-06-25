@@ -189,6 +189,17 @@ const initializeDB = async () => {
       )
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS faq (
+        id SERIAL PRIMARY KEY,
+        question VARCHAR(255) NOT NULL,
+        answer TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        order_index INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     console.log('PostgreSQL Database initialized successfully');
     client.release();
   } catch (err) {

@@ -73,4 +73,21 @@ router.get('/api/stats', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Get Geospatial Data (Mock data for dashboard since users table doesn't store lat/lng currently)
+router.get('/api/stats/geospatial', authenticateAdmin, async (req, res) => {
+  try {
+    // In a real scenario, this would query orders or users tables with actual coordinates
+    const mockData = [
+      { id: 1, lat: 41.2995, lng: 69.2401, city: 'Toshkent', orders: 150, value: 5000000 },
+      { id: 2, lat: 39.6270, lng: 66.9749, city: 'Samarqand', orders: 85, value: 2500000 },
+      { id: 3, lat: 40.7821, lng: 72.3442, city: 'Andijon', orders: 60, value: 1200000 },
+      { id: 4, lat: 39.7747, lng: 64.4286, city: 'Buxoro', orders: 45, value: 900000 },
+      { id: 5, lat: 40.3842, lng: 71.7843, city: 'Farg\\'ona', orders: 70, value: 1800000 }
+    ];
+    res.json(mockData);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

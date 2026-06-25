@@ -72,6 +72,7 @@ const notificationsRouter = require('./routes/notifications');
 const statsRouter = require('./routes/stats');
 const wishlistRouter = require('./routes/wishlist');
 const demoRouter = require('./routes/demo');
+const faqRouter = require('./routes/faq');
 
 // Register Routes
 app.use(authRouter);
@@ -83,6 +84,7 @@ app.use(blogsRouter);
 app.use(notificationsRouter);
 app.use(statsRouter);
 app.use(wishlistRouter);
+app.use(faqRouter);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
