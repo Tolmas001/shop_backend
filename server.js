@@ -87,6 +87,27 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Root (/) route
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>ShopSRY Backend</title>
+        <style>
+          body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; color: #333; }
+          h1 { color: #2563EB; }
+          p { font-size: 1.2rem; }
+        </style>
+      </head>
+      <body>
+        <h1>🚀 ShopSRY Backend</h1>
+        <p>Backend server muvaffaqiyatli ishlayapti!</p>
+        <p>Status: <b style="color: green;">Online</b></p>
+      </body>
+    </html>
+  `);
+});
+
 const PORT = process.env.PORT || 5001;
 
 // Database initialization and admin seeding on startup
