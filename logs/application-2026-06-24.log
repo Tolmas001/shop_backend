@@ -1,8 +1,0 @@
-{"level":"info","message":"GET /","timestamp":"2026-06-24 11:21:49"}
-{"level":"info","message":"GET /","timestamp":"2026-06-24 11:21:51"}
-{"level":"info","message":"GET //routes/auth","timestamp":"2026-06-24 11:24:00"}
-{"level":"info","message":"GET /routes/auth","timestamp":"2026-06-24 11:24:05"}
-{"level":"info","message":"GET /routes/auth","timestamp":"2026-06-24 11:24:08"}
-{"level":"info","message":"POST /api/auth/login","timestamp":"2026-06-24 11:43:36"}
-{"level":"info","message":"POST /api/auth/login","timestamp":"2026-06-24 11:43:36"}
-{"level":"info","message":"POST /api/auth/login","timestamp":"2026-06-24 11:44:43"}
