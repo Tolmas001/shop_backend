@@ -113,22 +113,13 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5001;
 
 // Database initialization and admin seeding on startup
-const startServer = async () => {
-  try {
-    await initializeDB();
-    console.log('PostgreSQL initialized successfully');
-    await ensureAdminExists();
-    await ensureSuperAdminExists();
-    
-    app.listen(PORT, () => {
-      console.log(`\n🚀 ShopSRY Backend is running!`);
-      console.log(`   - Port: ${PORT}`);
-      console.log(`   - Local: http://localhost:${PORT}`);
-      console.log(`   - Uploads: http://localhost:${PORT}/uploads\n`);
-    });
-  } catch (err) {
-    console.error('CRITICAL: Server failed to start!', err);
-  }
-};
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React/Vite build folder
+  const clientBuildPath = path.join(__dirname, 'client', 'build');
+  app.use(express.static(clientBuildPath));
 
-startServer();
+  // All unmatched routes should return the front‑end index.html so the SPA router can handle them
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
