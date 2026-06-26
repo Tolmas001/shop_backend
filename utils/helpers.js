@@ -48,9 +48,8 @@ function saveBase64Image(base64) {
 async function ensureAdminExists() {
   const adminUser = process.env.ADMIN_USERNAME || 'admin';
   const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
-  
+
   try {
-    console.log(`Checking for admin user: ${adminUser}...`);
     const { rows } = await pool.query('SELECT * FROM users WHERE role = $1 OR LOWER(username) = LOWER($2)', ['admin', adminUser.toLowerCase()]);
     const hashedPassword = await bcrypt.hash(adminPass, 10);
 
@@ -60,17 +59,16 @@ async function ensureAdminExists() {
         'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)',
         [adminUser.toLowerCase(), 'admin@shopsry.com', hashedPassword, 'admin']
       );
-      console.log('✅ Admin user created successfully with password from .env');
+      console.log('✅ Admin user created successfully');
     } else {
-      // Force sync password and role even if user exists
       const existingUser = rows[0];
       await pool.query(
         'UPDATE users SET password = $1, role = $2, username = $3 WHERE id = $4',
         [hashedPassword, 'admin', adminUser.toLowerCase(), existingUser.id]
       );
-      console.log(`✅ Admin account synced: User="${adminUser.toLowerCase()}", Role="admin", Password="[UPDATED FROM .env]"`);
+      console.log(`✅ Admin account synced: User="${adminUser.toLowerCase()}", Role="admin"`);
     }
-    // Seed initial promo codes
+
     const demoPromos = [
       { code: 'SHOPSRY10', percent: 10 },
       { code: 'NEW2026', percent: 20 },
@@ -83,7 +81,6 @@ async function ensureAdminExists() {
       );
     }
 
-    // Seed cream categories
     const creamCategories = [
       { name: 'Yuz kremlari', desc: 'Yuz terisi uchun maxsus kremlar' },
       { name: 'Qo\'l kremlari', desc: 'Qo\'l va tirnoq parvarishi uchun' },
@@ -97,25 +94,22 @@ async function ensureAdminExists() {
       );
     }
 
-    return true;
+    return { username: adminUser.toLowerCase(), password: adminPass, role: 'admin' };
   } catch (err) {
     console.error('❌ Error ensuring admin exists:', err.message);
-    return false;
+    return null;
   }
 }
 
 async function ensureSuperAdminExists() {
   const superUser = process.env.SUPERADMIN_USERNAME || 'superadmin';
   const superPass = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
-  
+
   try {
-    console.log(`Checking for superadmin user: ${superUser}...`);
-    const hashedPassword = await bcrypt.hash(superPass, 10);
-    
     const { rows } = await pool.query('SELECT * FROM users WHERE role = $1 OR LOWER(username) = LOWER($2)', ['superadmin', superUser.toLowerCase()]);
-    
+
     if (rows.length === 0) {
-      console.log(`Superadmin user "${superUser}" not found, creating one...`);
+      const hashedPassword = await bcrypt.hash(superPass, 10);
       await pool.query(
         'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)',
         [superUser.toLowerCase(), 'super@shopsry.com', hashedPassword, 'superadmin']
@@ -123,16 +117,18 @@ async function ensureSuperAdminExists() {
       console.log('✅ Superadmin user created successfully');
     } else {
       const user = rows[0];
+      const hashedPassword = await bcrypt.hash(superPass, 10);
       await pool.query(
         'UPDATE users SET password = $1, role = $2, username = $3 WHERE id = $4',
         [hashedPassword, 'superadmin', superUser.toLowerCase(), user.id]
       );
       console.log(`✅ Superadmin account synced`);
     }
-    return true;
+
+    return { username: superUser.toLowerCase(), password: superPass, role: 'superadmin' };
   } catch (err) {
     console.error('❌ Error ensuring superadmin exists:', err.message);
-    return false;
+    return null;
   }
 }
 

@@ -7,8 +7,7 @@ const poolConfig = {
   port: process.env.PGPORT ? parseInt(process.env.PGPORT, 10) : 5432,
   database: process.env.PGDATABASE || 'shop',
   user: process.env.PGUSER || 'postgres',
-  // Include password only if defined to avoid empty string causing SASL errors
-  ...(process.env.PGPASSWORD ? { password: process.env.PGPASSWORD } : {})
+  password: process.env.PGPASSWORD || ''
 };
 
 
@@ -80,6 +79,8 @@ const initializeDB = async () => {
         status VARCHAR(50) DEFAULT 'pending',
         payment_method VARCHAR(50) DEFAULT 'cash',
         payment_status VARCHAR(50) DEFAULT 'unpaid',
+        delivery_method VARCHAR(50) DEFAULT 'standard',
+        delivery_cost NUMERIC DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
       )
@@ -89,6 +90,8 @@ const initializeDB = async () => {
     try {
       await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT \'cash\'');
       await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'unpaid\'');
+      await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method VARCHAR(50) DEFAULT \'standard\'');
+      await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_cost NUMERIC DEFAULT 0');
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)');
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0');
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT true');

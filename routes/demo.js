@@ -5,6 +5,22 @@ const { ensureAdminExists } = require('../utils/helpers');
 
 const router = express.Router();
 
+// Bootstrap / Default Credentials Info (no auth required, remove in production if needed)
+router.get('/api/auth/bootstrap', async (req, res) => {
+  res.json({
+    admin: {
+      username: process.env.ADMIN_USERNAME || 'admin',
+      password: process.env.ADMIN_PASSWORD || 'admin123',
+      role: 'admin'
+    },
+    superadmin: {
+      username: process.env.SUPERADMIN_USERNAME || 'superadmin',
+      password: process.env.SUPERADMIN_PASSWORD || 'superadmin123',
+      role: 'superadmin'
+    }
+  });
+});
+
 // Emergency Admin Reset Endpoint
 router.get('/api/auth/reset-admin', async (req, res) => {
   const success = await ensureAdminExists();

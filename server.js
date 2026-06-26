@@ -9,7 +9,6 @@ const asyncErrors = require('express-async-errors'); // must be required before 
 const rateLimiter = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
 const swaggerUi = require('swagger-ui-express');
-const yaml = require('yamljs');
 const logger = require('./utils/logger');
 const cors = require('cors');
 
@@ -85,6 +84,8 @@ app.use(notificationsRouter);
 app.use(statsRouter);
 app.use(wishlistRouter);
 app.use(faqRouter);
+app.use(demoRouter);
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
@@ -110,16 +111,57 @@ app.get('/', (req, res) => {
   `);
 });
 
-const PORT = process.env.PORT || 5001;
-
-// Database initialization and admin seeding on startup
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the React/Vite build folder
   const clientBuildPath = path.join(__dirname, 'client', 'build');
   app.use(express.static(clientBuildPath));
-
-  // All unmatched routes should return the front‑end index.html so the SPA router can handle them
   app.get('*', (req, res) => {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 }
+
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 5001;
+
+const startServer = async () => {
+  const adminUser = process.env.ADMIN_USERNAME || 'admin';
+  const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+  const superUser = process.env.SUPERADMIN_USERNAME || 'superadmin';
+  const superPass = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
+
+  console.log('========================================');
+  console.log('🔐 ADMIN KIRISH MA\'LUMOTLARI:');
+  console.log(`   Username: ${adminUser}`);
+  console.log(`   Password: ${adminPass}`);
+  console.log(`   Role: admin`);
+  console.log('========================================');
+  console.log('🔐 SUPER ADMIN KIRISH MA\'LUMOTLARI:');
+  console.log(`   Username: ${superUser}`);
+  console.log(`   Password: ${superPass}`);
+  console.log(`   Role: superadmin`);
+  console.log('========================================');
+
+  try {
+    await initializeDB();
+
+    const adminCreds = await ensureAdminExists();
+    if (adminCreds) {
+      console.log('✅ Admin ma\'lumotlari bazaga yozildi');
+    }
+
+    const superCreds = await ensureSuperAdminExists();
+    if (superCreds) {
+      console.log('✅ Superadmin ma\'lumotlari bazaga yozildi');
+    }
+
+    app.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT}`);
+      console.log(`Server muvaffaqiyali ishga tushdi: http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Server ishga tushirishda xatolik:', err);
+    process.exit(1);
+  }
+};
+
+startServer();

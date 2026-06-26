@@ -1,0 +1,18 @@
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:20:59"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:21:16"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:21:24"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:24:34"}
+{"level":"info","message":"GET /health","timestamp":"2026-06-26 10:25:19"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:26:34"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:26:43"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:26:57"}
+{"level":"info","message":"GET /health","timestamp":"2026-06-26 10:27:18"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:32:24"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:32:39"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:32:51"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:33:02"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:33:14"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:33:25"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:34:25"}
+{"level":"info","message":"GET /api/auth/bootstrap","timestamp":"2026-06-26 10:34:59"}
+{"level":"info","message":"Server running on port 5001","timestamp":"2026-06-26 10:35:29"}
