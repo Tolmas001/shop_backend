@@ -92,6 +92,9 @@ const initializeDB = async () => {
       await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT \'unpaid\'');
       await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_method VARCHAR(50) DEFAULT \'standard\'');
       await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_cost NUMERIC DEFAULT 0');
+      await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_receipt TEXT');
+      await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS verified_by INTEGER');
+      await client.query('ALTER TABLE orders ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP');
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)');
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0');
       await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN DEFAULT true');

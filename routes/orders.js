@@ -2,8 +2,35 @@ const express = require('express');
 const { pool } = require('../database');
 const { authenticateToken, authenticateAdmin } = require('../middleware/auth');
 const { createNotification, logActivity } = require('../utils/helpers');
+const multer = require('multer');
+const path = require('path');
 
 const router = express.Router();
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/receipts/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'receipt-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = /jpeg|jpg|png|pdf/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only images (jpeg, jpg, png) and PDF files are allowed'));
+    }
+  }
+});
 
 // Orders - Get User Orders
 router.get('/api/orders', authenticateToken, async (req, res) => {
@@ -99,7 +126,7 @@ router.post('/api/orders', authenticateToken, async (req, res) => {
       }
     }
 
-    const payment_status = payment_method === 'card' ? 'paid' : 'unpaid';
+    const payment_status = payment_method === 'card' ? 'paid' : 'pending';
     
     const { rows } = await client.query(
       'INSERT INTO orders (user_id, customer_name, customer_phone, customer_address, total_amount, payment_method, payment_status, delivery_method, delivery_cost) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
@@ -197,6 +224,121 @@ router.put('/api/orders/:id/cancel', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'Order cancelled successfully' });
   } catch (err) {
     console.error('Order cancel error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Orders - Upload Receipt
+router.post('/api/orders/:id/upload-receipt', authenticateToken, upload.single('receipt'), async (req, res) => {
+  const orderId = req.params.id;
+  const userId = req.user.id;
+  
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    // Verify order ownership
+    const { rows } = await pool.query(
+      'SELECT id, payment_status FROM orders WHERE id = $1 AND user_id = $2',
+      [orderId, userId]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found or access denied' });
+    }
+    
+    if (rows[0].payment_status !== 'pending') {
+      return res.status(400).json({ error: `Cannot upload receipt for order with payment status: ${rows[0].payment_status}` });
+    }
+    
+    const receiptUrl = `/uploads/receipts/${req.file.filename}`;
+    
+    await pool.query(
+      'UPDATE orders SET payment_receipt = $1, payment_status = \'waiting_verification\' WHERE id = $2',
+      [receiptUrl, orderId]
+    );
+    
+    res.json({ success: true, receipt_url: receiptUrl });
+  } catch (err) {
+    console.error('Upload receipt error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin - Get Pending Payments
+router.get('/api/admin/payments/pending', authenticateAdmin, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT o.*, 
+       COALESCE(json_agg(json_build_object('name', p.name, 'image', p.image, 'quantity', oi.quantity, 'price', oi.price)) FILTER (WHERE p.id IS NOT NULL), '[]') as items_list,
+       u.username, u.email
+       FROM orders o
+       LEFT JOIN order_items oi ON o.id = oi.order_id
+       LEFT JOIN products p ON oi.product_id = p.id
+       LEFT JOIN users u ON o.user_id = u.id
+       WHERE o.payment_status = 'waiting_verification'
+       GROUP BY o.id, u.username, u.email
+       ORDER BY o.created_at DESC`
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin - Approve Payment
+router.patch('/api/admin/orders/:id/approve', authenticateAdmin, async (req, res) => {
+  const orderId = req.params.id;
+  const adminId = req.user.id;
+  
+  try {
+    const { rows } = await pool.query(
+      'UPDATE orders SET payment_status = \'paid\', verified_by = $1, verified_at = NOW(), status = \'processing\' WHERE id = $2 RETURNING *',
+      [adminId, orderId]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    await logActivity(adminId, 'PAYMENT_APPROVED', `Approved payment for order ID: ${orderId}`);
+    
+    if (rows[0].user_id) {
+      createNotification(rows[0].user_id, `Buyurtma #${orderId} to\'lovi tasdiqlandi!`, 'success');
+    }
+    
+    res.json({ success: true, order: rows[0] });
+  } catch (err) {
+    console.error('Approve payment error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin - Reject Payment
+router.patch('/api/admin/orders/:id/reject', authenticateAdmin, async (req, res) => {
+  const orderId = req.params.id;
+  const adminId = req.user.id;
+  
+  try {
+    const { rows } = await pool.query(
+      'UPDATE orders SET payment_status = \'rejected\', status = \'payment_failed\' WHERE id = $2 RETURNING *',
+      [adminId, orderId]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    await logActivity(adminId, 'PAYMENT_REJECTED', `Rejected payment for order ID: ${orderId}`);
+    
+    if (rows[0].user_id) {
+      createNotification(rows[0].user_id, `Buyurtma #${orderId} to\'lovi rad qilindi. Iltimos, qayta urinib ko\'ring.`, 'error');
+    }
+    
+    res.json({ success: true, order: rows[0] });
+  } catch (err) {
+    console.error('Reject payment error:', err);
     res.status(500).json({ error: err.message });
   }
 });
