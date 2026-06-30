@@ -171,12 +171,12 @@ const startServer = async () => {
   console.log('========================================');
   console.log('🔐 ADMIN KIRISH MA\'LUMOTLARI:');
   console.log(`   Username: ${adminUser}`);
-  console.log(`   Password: ${adminPass}`);
+  console.log(`   Password: ********`);
   console.log(`   Role: admin`);
   console.log('========================================');
   console.log('🔐 SUPER ADMIN KIRISH MA\'LUMOTLARI:');
   console.log(`   Username: ${superUser}`);
-  console.log(`   Password: ${superPass}`);
+  console.log(`   Password: ********`);
   console.log(`   Role: superadmin`);
   console.log('========================================');
 
