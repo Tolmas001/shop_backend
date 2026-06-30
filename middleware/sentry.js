@@ -11,6 +11,10 @@ const initSentry = () => {
         if (process.env.NODE_ENV === 'development') {
           return null;
         }
+        // Don't send errors from localhost in production
+        if (event.request?.url?.includes('localhost') || event.request?.url?.includes('127.0.0.1')) {
+          return null;
+        }
         return event;
       }
     });
