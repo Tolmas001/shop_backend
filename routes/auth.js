@@ -69,14 +69,96 @@ router.post('/api/auth/login', async (req, res) => {
     }
     
     console.log(`[LOGIN SUCCESS] User "${username}" authenticated successfully.`);
-    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '24h' });
+    
+    // Access token (15 min)
+    const accessToken = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '15m' });
+    
+    // Refresh token (30 days)
+    const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, SECRET_KEY, { expiresIn: '30d' });
+    
+    // Store refresh token in database
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    await pool.query(
+      'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [user.id, refreshToken, expiresAt]
+    );
     
     // Welcome Notification Trigger
     createNotification(user.id, 'Xush kelibsiz! ShopSRY do\'konimizga tashrif buyurganingizdan xursandmiz.', 'info');
     
-    res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+    res.json({ 
+      accessToken, 
+      refreshToken, 
+      user: { id: user.id, username: user.username, role: user.role } 
+    });
   } catch (err) {
     console.error('[LOGIN ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Refresh Token
+router.post('/api/auth/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+  
+  if (!refreshToken) {
+    return res.status(400).json({ error: 'Refresh token is required' });
+  }
+  
+  try {
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, SECRET_KEY);
+    
+    if (decoded.type !== 'refresh') {
+      return res.status(400).json({ error: 'Invalid token type' });
+    }
+    
+    // Check if refresh token exists in database and is not revoked
+    const { rows } = await pool.query(
+      'SELECT * FROM refresh_tokens WHERE token = $1 AND revoked_at IS NULL AND expires_at > NOW()',
+      [refreshToken]
+    );
+    
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+    
+    // Get user info
+    const userRes = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.id]);
+    const user = userRes.rows[0];
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Generate new access token
+    const newAccessToken = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '15m' });
+    
+    res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Refresh token expired' });
+    }
+    console.error('[REFRESH ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Logout
+router.post('/api/auth/logout', async (req, res) => {
+  const { refreshToken } = req.body;
+  
+  try {
+    if (refreshToken) {
+      // Revoke refresh token
+      await pool.query(
+        'UPDATE refresh_tokens SET revoked_at = NOW() WHERE token = $1',
+        [refreshToken]
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

@@ -4,10 +4,15 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@sentry/node": "^10.62.0",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.79.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "dotenv-safe": "^8.2.0",
@@ -19,11 +24,21 @@
     "joi": "^17.9.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
+    "node-cron": "^4.5.0",
     "nodemailer": "^8.0.5",
     "pg": "^8.20.0",
+    "redis": "^6.0.1",
+    "socket.io": "^4.8.3",
+    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^4.6.3",
+    "web-push": "^3.6.7",
     "winston": "^3.12.0",
     "winston-daily-rotate-file": "^4.7.1",
+    "xss": "^1.0.15",
     "yamljs": "^0.3.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }

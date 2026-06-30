@@ -8,12 +8,21 @@ const express = require('express');
 const asyncErrors = require('express-async-errors'); // must be required before routes
 const rateLimiter = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
+const adminLogger = require('./middleware/adminLogger');
+const { sanitizeInput } = require('./middleware/sanitize');
 const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 const logger = require('./utils/logger');
 const cors = require('cors');
 
 const { initializeDB } = require('./database');
 const { ensureAdminExists, ensureSuperAdminExists } = require('./utils/helpers');
+const { initializeSocket } = require('./socket');
+const { startAbandonedCartCron } = require('./cron/abandonedCart');
+const { initSentry, sentryErrorHandler } = require('./middleware/sentry');
+const { errorTrackerMiddleware } = require('./middleware/errorTracker');
+const { ipBlockerMiddleware, cleanupExpiredBlocks } = require('./middleware/ipBlocker');
+const searchLogger = require('./middleware/searchLogger');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -56,6 +65,10 @@ app.use(
   })
 );
 app.use(rateLimiter);
+app.use(ipBlockerMiddleware);
+app.use(sanitizeInput);
+app.use(searchLogger);
+app.use(adminLogger);
 app.use((req, res, next) => { logger.info(`${req.method} ${req.originalUrl}`); next(); });
 app.use(express.json({ limit: '50mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -72,6 +85,15 @@ const statsRouter = require('./routes/stats');
 const wishlistRouter = require('./routes/wishlist');
 const demoRouter = require('./routes/demo');
 const faqRouter = require('./routes/faq');
+const inventoryRouter = require('./routes/inventory');
+const adminNotificationsRouter = require('./routes/admin-notifications');
+const deliveryRouter = require('./routes/delivery');
+const supportRouter = require('./routes/support');
+const securityRouter = require('./routes/security');
+const refundsRouter = require('./routes/refunds');
+const paymentsRouter = require('./routes/payments');
+const backupsRouter = require('./routes/backups');
+const pushRouter = require('./routes/push');
 
 // Register Routes
 app.use(authRouter);
@@ -85,6 +107,18 @@ app.use(statsRouter);
 app.use(wishlistRouter);
 app.use(faqRouter);
 app.use(demoRouter);
+app.use(inventoryRouter);
+app.use(adminNotificationsRouter);
+app.use(deliveryRouter);
+app.use(supportRouter);
+app.use(securityRouter);
+app.use(refundsRouter);
+app.use(paymentsRouter);
+app.use(backupsRouter);
+app.use(pushRouter);
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -120,10 +154,15 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.use(errorHandler);
+app.use(sentryErrorHandler);
+app.use(errorTrackerMiddleware);
 
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
+  // Initialize Sentry
+  initSentry();
+
   const adminUser = process.env.ADMIN_USERNAME || 'admin';
   const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
   const superUser = process.env.SUPERADMIN_USERNAME || 'superadmin';
@@ -154,10 +193,19 @@ const startServer = async () => {
       console.log('✅ Superadmin ma\'lumotlari bazaga yozildi');
     }
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.info(`Server running on port ${PORT}`);
       console.log(`Server muvaffaqiyali ishga tushdi: http://localhost:${PORT}`);
     });
+    
+    // Initialize Socket.IO
+    initializeSocket(server);
+    
+    // Start cron jobs
+    startAbandonedCartCron();
+    
+    // Clean up expired IP blocks every hour
+    setInterval(cleanupExpiredBlocks, 60 * 60 * 1000);
   } catch (err) {
     console.error('Server ishga tushirishda xatolik:', err);
     process.exit(1);
