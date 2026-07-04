@@ -7,6 +7,13 @@ const helmet = require('helmet');
 const express = require('express');
 const asyncErrors = require('express-async-errors'); // must be required before routes
 const rateLimiter = require('./middleware/rateLimiter');
+const fs = require('fs');
+// Ensure uploads directory exists (required for image storage)
+const uploadsPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+  console.log('📁 Created uploads folder at', uploadsPath);
+}
 const errorHandler = require('./middleware/errorHandler');
 const adminLogger = require('./middleware/adminLogger');
 const { sanitizeInput } = require('./middleware/sanitize');
@@ -71,7 +78,8 @@ app.use(searchLogger);
 app.use(adminLogger);
 app.use((req, res, next) => { logger.info(`${req.method} ${req.originalUrl}`); next(); });
 app.use(express.json({ limit: '50mb' }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded images (both dev and prod)
+app.use('/uploads', express.static(uploadsPath));
 
 // Import Routes
 const authRouter = require('./routes/auth');
@@ -160,27 +168,27 @@ app.use(errorTrackerMiddleware);
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
-  // Initialize Sentry
-  initSentry();
-
-  const adminUser = process.env.ADMIN_USERNAME || 'admin';
-  const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
-  const superUser = process.env.SUPERADMIN_USERNAME || 'superadmin';
-  const superPass = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
-
-  console.log('========================================');
-  console.log('🔐 ADMIN KIRISH MA\'LUMOTLARI:');
-  console.log(`   Username: ${adminUser}`);
-  console.log(`   Password: ********`);
-  console.log(`   Role: admin`);
-  console.log('========================================');
-  console.log('🔐 SUPER ADMIN KIRISH MA\'LUMOTLARI:');
-  console.log(`   Username: ${superUser}`);
-  console.log(`   Password: ********`);
-  console.log(`   Role: superadmin`);
-  console.log('========================================');
-
   try {
+    // Initialize Sentry
+    initSentry();
+
+    const adminUser = process.env.ADMIN_USERNAME || 'admin';
+    const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
+    const superUser = process.env.SUPERADMIN_USERNAME || 'superadmin';
+    const superPass = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
+
+    console.log('========================================');
+    console.log('🔐 ADMIN KIRISH MA\'LUMOTLARI:');
+    console.log(`   Username: ${adminUser}`);
+    console.log(`   Password: ********`);
+    console.log(`   Role: admin`);
+    console.log('========================================');
+    console.log('🔐 SUPER ADMIN KIRISH MA\'LUMOTLARI:');
+    console.log(`   Username: ${superUser}`);
+    console.log(`   Password: ********`);
+    console.log(`   Role: superadmin`);
+    console.log('========================================');
+
     await initializeDB();
 
     const adminCreds = await ensureAdminExists();
@@ -194,8 +202,11 @@ const startServer = async () => {
     }
 
     const server = app.listen(PORT, () => {
+      console.log(`🚀 ShopSRY Backend is running!`);
+      console.log(`   - Port: ${PORT}`);
+      console.log(`   - Local: http://localhost:${PORT}`);
+      console.log(`   - Uploads: http://localhost:${PORT}/uploads`);
       logger.info(`Server running on port ${PORT}`);
-      console.log(`Server muvaffaqiyali ishga tushdi: http://localhost:${PORT}`);
     });
     
     // Initialize Socket.IO
@@ -207,6 +218,9 @@ const startServer = async () => {
     // Clean up expired IP blocks every hour
     setInterval(cleanupExpiredBlocks, 60 * 60 * 1000);
   } catch (err) {
+    console.error('CRITICAL: Server failed to start!', err);
+  }
+};
     console.error('Server ishga tushirishda xatolik:', err);
     process.exit(1);
   }
