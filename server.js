@@ -218,12 +218,8 @@ const startServer = async () => {
     // Clean up expired IP blocks every hour
     setInterval(cleanupExpiredBlocks, 60 * 60 * 1000);
   } catch (err) {
-    console.error('CRITICAL: Server failed to start!', err);
-  }
-};
     console.error('Server ishga tushirishda xatolik:', err);
     process.exit(1);
   }
-};
-
+}
 startServer();
