@@ -30,11 +30,32 @@ router.post('/api/auth/register', async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   
   try {
-    await pool.query(
-      'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)',
+    const { rows } = await pool.query(
+      'INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *',
       [username, email, hashedPassword, 'user']
     );
-    res.json({ success: true });
+    const user = rows[0];
+    
+    // Generate tokens immediately after registration
+    const accessToken = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ id: user.id, type: 'refresh' }, SECRET_KEY, { expiresIn: '30d' });
+    
+    // Store refresh token in database
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await pool.query(
+      'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
+      [user.id, refreshToken, expiresAt]
+    );
+    
+    // Welcome notification
+    createNotification(user.id, 'Xush kelibsiz! ShopSRY do\'konimizga tashrif buyurganingizdan xursandmiz.', 'info');
+    
+    res.json({ 
+      success: true,
+      accessToken,
+      refreshToken,
+      user: { id: user.id, username: user.username, role: user.role }
+    });
   } catch (err) {
     res.status(400).json({ error: 'Username or email already exists' });
   }
@@ -244,29 +265,45 @@ router.get('/auth/google', (req, res) => {
 router.get('/auth/google/callback', async (req, res) => {
   const { code } = req.query;
   
+  console.log('[Google Callback] Starting Google OAuth callback');
+  console.log('[Google Callback] Code received:', code ? 'Yes' : 'No');
+  console.log('[Google Callback] GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
+  console.log('[Google Callback] GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Not set');
+  console.log('[Google Callback] GOOGLE_REDIRECT_URL:', process.env.GOOGLE_REDIRECT_URL || 'Not set (using default)');
+  console.log('[Google Callback] FRONTEND_URL:', process.env.FRONTEND_URL || 'Not set (using default)');
+  
   try {
     const { tokens } = await client.getToken(code);
+    console.log('[Google Callback] Tokens received successfully');
     client.setCredentials(tokens);
     
     const ticket = await client.verifyIdToken({
       idToken: tokens.id_token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
+    console.log('[Google Callback] ID token verified successfully');
     
     const payload = ticket.getPayload();
     const { email, name, sub: google_id, picture } = payload;
+    console.log('[Google Callback] User email:', email);
+    console.log('[Google Callback] Google ID:', google_id);
     
     let { rows } = await pool.query('SELECT * FROM users WHERE google_id = $1', [google_id]);
     let user = rows[0];
+    console.log('[Google Callback] User found by google_id:', user ? 'Yes' : 'No');
     
     if (!user) {
+      console.log('[Google Callback] User not found by google_id, checking by email');
       const emailCheck = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
       user = emailCheck.rows[0];
+      console.log('[Google Callback] User found by email:', user ? 'Yes' : 'No');
       
       const targetAdminEmail = 'urinovtolmas20@gmail.com';
       const role = email === targetAdminEmail ? 'admin' : 'user';
+      console.log('[Google Callback] Assigned role:', role);
 
       if (user) {
+        console.log('[Google Callback] Updating existing user with google_id');
         await pool.query(
           'UPDATE users SET google_id = $1, image = COALESCE(image, $2), full_name = COALESCE(full_name, $3), role = CASE WHEN email = $4 THEN $5 ELSE role END WHERE id = $6', 
           [google_id, picture, name, targetAdminEmail, 'admin', user.id]
@@ -274,31 +311,46 @@ router.get('/auth/google/callback', async (req, res) => {
         user.google_id = google_id;
         if (email === targetAdminEmail) user.role = 'admin';
       } else {
+        console.log('[Google Callback] Creating new user');
         const username = email.split('@')[0] + Math.floor(Math.random() * 1000);
         const { rows: newUserRows } = await pool.query(
           'INSERT INTO users (username, email, google_id, image, full_name, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
           [username, email, google_id, picture, name, role]
         );
         user = newUserRows[0];
+        console.log('[Google Callback] New user created with ID:', user.id);
       }
     } else {
+      console.log('[Google Callback] User exists with google_id');
       // User exists with google_id, but let's ensure role is correct if email is the target admin
       const targetAdminEmail = 'urinovtolmas20@gmail.com';
       if (user.email === targetAdminEmail && user.role !== 'admin') {
+        console.log('[Google Callback] Updating user role to admin');
         await pool.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', user.id]);
         user.role = 'admin';
       }
     }
     
+    // Validate user object before creating token
+    if (!user || !user.id || !user.username || !user.role) {
+      console.error('[Google Callback] Invalid user object after Google auth:', user);
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      return res.redirect(`${frontendUrl}/login?error=invalid_user_data`);
+    }
+    
+    console.log('[Google Callback] Creating JWT token for user:', user.username, 'with role:', user.role);
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET_KEY, { expiresIn: '24h' });
     
     // Redirect back to frontend with token
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    console.log('[Google Callback] Redirecting to frontend:', frontendUrl);
     res.redirect(`${frontendUrl}/login-success?token=${token}`);
     
   } catch (err) {
-    console.error('Google callback error:', err);
+    console.error('[Google Callback] Error details:', err.message);
+    console.error('[Google Callback] Error stack:', err.stack);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    console.log('[Google Callback] Redirecting to login with error');
     res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
   }
 });
@@ -306,9 +358,27 @@ router.get('/auth/google/callback', async (req, res) => {
 // Get Me
 router.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
+    console.log('[/api/auth/me] Request from user ID:', req.user.id);
     const { rows } = await pool.query('SELECT id, username, email, full_name, role, image, phone, points, notifications_enabled, privacy_private, address_list, saved_cards FROM users WHERE id = $1', [req.user.id]);
-    res.json(rows[0]);
+    const user = rows[0];
+    
+    console.log('[/api/auth/me] User found:', user ? 'Yes' : 'No');
+    
+    if (!user) {
+      console.error('[/api/auth/me] User not found for ID:', req.user.id);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Ensure role is set, default to 'user' if missing
+    if (!user.role) {
+      console.warn('[/api/auth/me] User missing role, setting default to "user"');
+      user.role = 'user';
+    }
+    
+    console.log('[/api/auth/me] Returning user data with role:', user.role);
+    res.json(user);
   } catch (err) {
+    console.error('[/api/auth/me] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
