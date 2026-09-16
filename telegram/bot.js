@@ -1386,7 +1386,11 @@ Ish vaqti: 09:00 - 18:00
 
   console.log('Telegram bot ishga tushdi...');
 
-  return bot;
+    return bot;
+  } catch (error) {
+    console.error('Error initializing Telegram bot:', error);
+    return null;
+  }
 };
 
 module.exports = { initializeTelegramBot };
