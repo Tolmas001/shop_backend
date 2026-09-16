@@ -216,8 +216,13 @@ const startServer = async () => {
     // Start cron jobs
     startAbandonedCartCron();
     
-    // Initialize Telegram bot
-    initializeTelegramBot();
+    // Initialize Telegram bot (with error handling)
+    try {
+      initializeTelegramBot();
+    } catch (botError) {
+      console.error('Telegram bot initialization failed:', botError.message);
+      // Continue without bot if it fails
+    }
     
     // Clean up expired IP blocks every hour
     setInterval(cleanupExpiredBlocks, 60 * 60 * 1000);

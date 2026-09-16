@@ -174,13 +174,16 @@ const initializeTelegramBot = () => {
     return null;
   }
 
-  // Create a bot instance
-  bot = new TelegramBot(token, { polling: true });
+  try {
+    // Create a bot instance
+    bot = new TelegramBot(token, { polling: true });
 
-  // Set bot instance for notifications
-  setBotInstance(bot);
+    // Set bot instance for notifications
+    setBotInstance(bot);
 
-  // Start command handler
+    console.log('Telegram bot initialization started...');
+
+    // Start command handler
   bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const telegramId = msg.from.id;
