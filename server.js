@@ -27,6 +27,7 @@ const { ensureAdminExists, ensureSuperAdminExists } = require('./utils/helpers')
 const { initializeSocket } = require('./socket');
 const { startAbandonedCartCron } = require('./cron/abandonedCart');
 const { initSentry, sentryErrorHandler } = require('./middleware/sentry');
+const { initializeTelegramBot } = require('./telegram/bot');
 const { errorTrackerMiddleware } = require('./middleware/errorTracker');
 const { ipBlockerMiddleware, cleanupExpiredBlocks } = require('./middleware/ipBlocker');
 const searchLogger = require('./middleware/searchLogger');
@@ -214,6 +215,9 @@ const startServer = async () => {
     
     // Start cron jobs
     startAbandonedCartCron();
+    
+    // Initialize Telegram bot
+    initializeTelegramBot();
     
     // Clean up expired IP blocks every hour
     setInterval(cleanupExpiredBlocks, 60 * 60 * 1000);

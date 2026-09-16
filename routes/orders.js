@@ -2,6 +2,7 @@ const express = require('express');
 const { pool } = require('../database');
 const { authenticateToken, authenticateAdmin } = require('../middleware/auth');
 const { createNotification, logActivity } = require('../utils/helpers');
+const { sendOrderStatusNotification } = require('../telegram/notifications');
 const multer = require('multer');
 const path = require('path');
 
@@ -188,6 +189,9 @@ router.put('/api/orders/:id/status', authenticateAdmin, async (req, res) => {
     await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, req.params.id]);
     
     await logActivity(req.user.id, 'ORDER_STATUS_UPDATE', `Updated order ID: ${req.params.id} to status: ${status}`);
+    
+    // Send Telegram notification if applicable
+    await sendOrderStatusNotification(req.params.id, status);
     
     res.json({ success: true });
   } catch (err) {
