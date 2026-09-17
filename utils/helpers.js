@@ -50,7 +50,7 @@ async function ensureAdminExists() {
   const adminPass = process.env.ADMIN_PASSWORD || 'admin123';
 
   try {
-    const { rows } = await pool.query('SELECT * FROM users WHERE role = $1 OR LOWER(username) = LOWER($2)', ['admin', adminUser.toLowerCase()]);
+    const { rows } = await pool.query('SELECT * FROM users WHERE LOWER(username) = LOWER($1)', [adminUser.toLowerCase()]);
     const hashedPassword = await bcrypt.hash(adminPass, 10);
 
     if (rows.length === 0) {
@@ -63,8 +63,8 @@ async function ensureAdminExists() {
     } else {
       const existingUser = rows[0];
       await pool.query(
-        'UPDATE users SET password = $1, role = $2, username = $3 WHERE id = $4',
-        [hashedPassword, 'admin', adminUser.toLowerCase(), existingUser.id]
+        'UPDATE users SET password = $1, role = $2 WHERE id = $3',
+        [hashedPassword, 'admin', existingUser.id]
       );
       console.log(`✅ Admin account synced: User="${adminUser.toLowerCase()}", Role="admin"`);
     }

@@ -1,9 +1,4 @@
-let TelegramBot = null;
-try {
-  TelegramBot = require('node-telegram-bot-api');
-} catch (error) {
-  console.log('node-telegram-bot-api package not found, Telegram bot will be disabled');
-}
+const TelegramBot = require('node-telegram-bot-api');
 
 const { pool } = require('../database');
 const { setBotInstance } = require('./notifications');
@@ -175,11 +170,6 @@ const getStatusEmoji = (status) => {
 
 // Initialize Telegram bot
 const initializeTelegramBot = () => {
-  if (!TelegramBot) {
-    console.log('node-telegram-bot-api package not available, skipping Telegram bot initialization');
-    return null;
-  }
-
   if (!token) {
     console.log('TELEGRAM_BOT_TOKEN not set, skipping Telegram bot initialization');
     return null;
