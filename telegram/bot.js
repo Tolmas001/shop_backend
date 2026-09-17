@@ -1,7 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 
 const { pool } = require('../database');
-const { setBotInstance } = require('./notifications');
+const { setBotInstance, sendOrderStatusNotification } = require('./notifications');
 const { checkRateLimit } = require('./middleware/rateLimiter');
 const { 
   getMainMenuKeyboard, 
@@ -203,6 +203,11 @@ const initializeTelegramBot = () => {
     const user = await findOrCreateTelegramUser(telegramId, msg.from);
     
     // Check if user is admin
+    if (!user) {
+      await bot.sendMessage(chatId, '❌ Foydalanuvchi ma\'lumotlarini olishda xatolik yuzberdi. Iltimos, qayta urinib ko\'ring.');
+      return;
+    }
+
     if (user.role === 'admin' || user.role === 'superadmin') {
       const welcomeMessage = `
 🎉 ShopSRY Admin Botiga xush kelibsiz!
@@ -518,7 +523,7 @@ Ish vaqti: 09:00 - 18:00
         return;
       }
       
-      adminSessions.set(userId, { step: 'broadcast_message' });
+      adminSessions.set(telegramId, { step: 'broadcast_message' });
       await bot.sendMessage(chatId, '📢 Xabar yuborish\n\nIltimos, yubormoqchi bo\'lgan xabaringizni kiriting:');
     } catch (error) {
       console.error('Error starting broadcast:', error);
@@ -538,7 +543,7 @@ Ish vaqti: 09:00 - 18:00
         return;
       }
       
-      adminSessions.set(userId, { step: 'select_order' });
+      adminSessions.set(telegramId, { step: 'select_order' });
       await bot.sendMessage(chatId, '⚡ Buyurtma statusi\n\nIltimos, buyurtma ID sini kiriting:');
     } catch (error) {
       console.error('Error starting order status change:', error);

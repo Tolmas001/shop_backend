@@ -53,6 +53,9 @@ importers:
       node-cron:
         specifier: ^4.5.0
         version: 4.6.0
+      node-telegram-bot-api:
+        specifier: ^1.2.0
+        version: 1.2.0
       nodemailer:
         specifier: ^8.0.5
         version: 8.0.11
@@ -1968,6 +1971,10 @@ packages:
 
   node-releases@2.0.55:
     resolution: {integrity: sha512-mIrE/Cw9y+9Au6dS5vDKDhQza9YvG6w+ZrS6X+ZzA7yFW/soAeaups4Qzn1bL6g5FVy8WtP79+0j82oPIbqRjQ==}
+    engines: {node: '>=18'}
+
+  node-telegram-bot-api@1.2.0:
+    resolution: {integrity: sha512-M6S61LZn1FQMQnZSdFlc4oV+mwDGlPTbLzq/GUaSH4ew40wGTaKPtAaLp5oOhl/C3k0ylGqMIppJsVulwTCePg==}
     engines: {node: '>=18'}
 
   nodemailer@8.0.11:
@@ -4644,6 +4651,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.55: {}
+
+  node-telegram-bot-api@1.2.0: {}
 
   nodemailer@8.0.11: {}
 
