@@ -66,35 +66,10 @@ async function ensureAdminExists() {
         'UPDATE users SET password = $1, role = $2 WHERE id = $3',
         [hashedPassword, 'admin', existingUser.id]
       );
-      console.log(`✅ Admin account synced: User="${adminUser.toLowerCase()}", Role="admin"`);
-    }
+       console.log(`✅ Admin account synced: User="${adminUser.toLowerCase()}", Role="admin"`);
+     }
 
-    const demoPromos = [
-      { code: 'SHOPSRY10', percent: 10 },
-      { code: 'NEW2026', percent: 20 },
-      { code: 'UZUM', percent: 15 }
-    ];
-    for (const p of demoPromos) {
-      await pool.query(
-        'INSERT INTO promo_codes (code, discount_percent) VALUES ($1, $2) ON CONFLICT (code) DO NOTHING',
-        [p.code, p.percent]
-      );
-    }
-
-    const creamCategories = [
-      { name: 'Yuz kremlari', desc: 'Yuz terisi uchun maxsus kremlar' },
-      { name: 'Qo\'l kremlari', desc: 'Qo\'l va tirnoq parvarishi uchun' },
-      { name: 'Tana kremlari', desc: 'Tana terisini namlantiruvchi kremlar' },
-      { name: 'Quyoshdan himoya kremlari', desc: 'SPF himoya vositalari' }
-    ];
-    for (const cat of creamCategories) {
-      await pool.query(
-        'INSERT INTO categories (name, description) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [cat.name, cat.desc]
-      );
-    }
-
-    return { username: adminUser.toLowerCase(), password: adminPass, role: 'admin' };
+     return { username: adminUser.toLowerCase(), password: adminPass, role: 'admin' };
   } catch (err) {
     console.error('❌ Error ensuring admin exists:', err.message);
     return null;

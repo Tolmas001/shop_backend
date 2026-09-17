@@ -92,8 +92,8 @@ const blogsRouter = require('./routes/blogs');
 const notificationsRouter = require('./routes/notifications');
 const statsRouter = require('./routes/stats');
 const wishlistRouter = require('./routes/wishlist');
-const demoRouter = require('./routes/demo');
 const faqRouter = require('./routes/faq');
+
 const inventoryRouter = require('./routes/inventory');
 const adminNotificationsRouter = require('./routes/admin-notifications');
 const deliveryRouter = require('./routes/delivery');
@@ -115,7 +115,6 @@ app.use(notificationsRouter);
 app.use(statsRouter);
 app.use(wishlistRouter);
 app.use(faqRouter);
-app.use(demoRouter);
 app.use(inventoryRouter);
 app.use(adminNotificationsRouter);
 app.use(deliveryRouter);
