@@ -182,8 +182,18 @@ const initializeTelegramBot = () => {
     setBotInstance(bot);
 
     console.log('Telegram bot initialization started...');
+  } catch (error) {
+    console.error('Failed to initialize Telegram bot:', error.message);
+    return null;
+  }
 
-    // Start command handler
+  // Only register handlers if bot was successfully created
+  if (!bot) {
+    console.log('Bot instance not available, skipping handler registration');
+    return null;
+  }
+
+  // Start command handler
   bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const telegramId = msg.from.id;
@@ -1386,11 +1396,7 @@ Ish vaqti: 09:00 - 18:00
 
   console.log('Telegram bot ishga tushdi...');
 
-    return bot;
-  } catch (error) {
-    console.error('Error initializing Telegram bot:', error);
-    return null;
-  }
+  return bot;
 };
 
 module.exports = { initializeTelegramBot };
